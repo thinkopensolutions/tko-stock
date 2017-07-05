@@ -17,18 +17,19 @@
                     <sheet>
                         <group colspan="4">
                             <field name="name"/>
+                            <field name="move_type_id" options="{'no_create': True}"/>
                             <field name="date"/>
                             <field name="user_id"/>
                             <field name="filter" widget="radio"/>
-                            <field name="location_id" domain="[('usage','=','internal')]"/>
-                            <field name="location_dest_id" domain="[('usage','=','internal')]"/>
+                            <field name="location_id" options="{'no_create': True}" groups="stock.group_stock_manager" domain="[('usage','=','internal')]"/>
+                            <field name="location_dest_id" options="{'no_create': True}" groups="stock.group_stock_manager" domain="[('usage','=','internal')]"/>
                         </group>
                         <group colspan="4">
                             <field name="line_ids" nolabel="1">
                                 <tree editable="top">
-                                    <field name="product_id"/>
-                                    <field name="product_uom"/>
-                                    <field name="product_uom_qty"/>
+                                    <field name="product_id" options="{'no_create': True}"/>
+                                    <field name="product_uom" options="{'no_create': True}"/>
+                                    <field name="product_uom_qty" groups="stock.group_stock_manager"/>
                                     <field name="theoretical_qty"/>
                                 </tree>
                             </field>
@@ -74,5 +75,55 @@
                   sequence="100"
                   action="mass_stock_move_action"
                   groups="stock.group_locations"/>
+
+        <record id="mass_stock_move_type_form" model="ir.ui.view">
+            <field name="name">Mass Stock Move Type</field>
+            <field name="model">mass.move.type</field>
+            <field name="arch" type="xml">
+                <form string="Mass Stock Move Type">
+                    <sheet>
+                        <group>
+                            <field name="name"/>
+                        </group>
+
+                        <group string="Configuration">
+                            <field name="move_type_lines" nolabel="1">
+                                <tree editable="top">
+                                    <field name="company_id" options="{'no_create': True}"/>
+                                    <field name="location_id" options="{'no_create': True}" />
+                                    <field name="location_dest_id" options="{'no_create': True}"/>
+                                </tree>
+                            </field>
+                        </group>
+
+                    </sheet>
+                </form>
+            </field>
+        </record>
+        <record id="mass_stock_move_type_tree" model="ir.ui.view">
+            <field name="name">Mass Stock Move Type</field>
+            <field name="model">mass.move.type</field>
+            <field name="arch" type="xml">
+                <tree>
+                    <field name="name"/>
+                </tree>
+            </field>
+        </record>
+
+        <!-- Action to  Stock Move Type-->
+        <record id="mass_stock_move_type_action" model="ir.actions.act_window">
+            <field name="name">Mass Stock Move Type</field>
+            <field name="res_model">mass.move.type</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+            <field name="view_id" ref="mass_stock_move_type_tree"/>
+        </record>
+
+        <menuitem id="mass_stock_move_type_menu"
+                  name="Mass Stock Move Type"
+                  parent="stock.menu_traceability"
+                  sequence="110"
+                  action="mass_stock_move_type_action"
+                  groups="stock.group_stock_manager"/>
     </data>
 </openerp>

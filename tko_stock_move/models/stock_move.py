@@ -11,14 +11,38 @@ from datetime import datetime
 from openerp.exceptions import Warning
 
 
+class MassMoveType(models.Model):
+    _name = 'mass.move.type'
+
+    name = fields.Char('Name', required=True)
+
+    move_type_lines = fields.One2many('mass.move.type.lines', 'line_id', 'Move Type Lines')
+
+
+class MassMoveTypeLines(models.Model):
+    _name = 'mass.move.type.lines'
+
+    line_id = fields.Many2one('mass.move.type', u'Move Type', ondelete='cascade')
+    company_id = fields.Many2one('res.company', u'Company', required=True)
+    location_id = fields.Many2one('stock.location', 'Source Location', required=True)
+    location_dest_id = fields.Many2one('stock.location', 'Dest Location', required=True)
+
+    _sql_constraints = [
+        ('company_id_unique',
+         'unique(line_id,company_id)',
+         'Company must be unique!')
+    ]
+
+
 class MassStockMove(models.Model):
     _name = 'mass.stock.move'
     _inherit = 'mail.thread'
 
     name = fields.Char(u'Name', required=True, readonly=True, states={'d': [('readonly', False)]},
                        track_visibility='onchange')
+    move_type_id = fields.Many2one('mass.move.type', u'Move Type', required=True)
     date = fields.Datetime(u'Date', readonly=True)
-    user_id = fields.Many2one('res.users', 'User', readonly=True, default=fields.Date.context_today)
+    user_id = fields.Many2one('res.users', 'User', readonly=True, default=lambda self: self.env.user.id)
     filter = fields.Selection([('a', 'Auto'), ('m', 'Manual Selection of Products')], required=True, default='a',
                               string='Filter', readonly=True, states={'d': [('readonly', False)]},
                               track_visibility='onchange')
@@ -31,8 +55,26 @@ class MassStockMove(models.Model):
     location_dest_id = fields.Many2one('stock.location', u'Destination  Location', required=True, readonly=True,
                                        states={'d': [('readonly', False)]}, track_visibility='onchange')
 
-    @api.constrains('location_id', 'location_dest_id')
+    _defaults={
+        'name':datetime.now().strftime(DEFAULT_SERVER_DATETIME_FORMAT),
+        'date':datetime.now().strftime(DEFAULT_SERVER_DATETIME_FORMAT),
+    }
+
+    @api.onchange('move_type_id')
+    def onchange_move_type_id(self):
+        company_id = self.env.user.company_id.id
+        if self.move_type_id and company_id:
+            line = self.env['mass.move.type.lines'].search(
+                [('line_id', '=', self.move_type_id.id), ('company_id', '=', company_id)])
+            if line:
+                self.location_id = line.location_id.id
+                self.location_dest_id = line.location_dest_id.id
+
+    @api.constrains('location_id', 'location_dest_id', 'state')
     def _check_stock_move(self):
+        moves = self.search([('state', '=', 'i')])
+        if len(moves) > 1:
+            raise Warning(u"You can't have more than one move in In Progress")
         if self.location_id == self.location_dest_id:
             raise Warning(u'Source and destination location can not be same')
 
@@ -61,6 +103,8 @@ class MassStockMove(models.Model):
     @api.multi
     def set_draft(self):
         self.write({'state': 'd'})
+        # delete lines on cancellation
+        self.line_ids.unlink()
 
     @api.multi
     def prepare_inventory(self):
@@ -99,7 +143,7 @@ class MassStockMove(models.Model):
                     if not value:
                         product_line[key] = False
                 product_line['line_id'] = inventory.id
-                #product_line['theoretical_qty'] = product_line['product_uom_qty']
+                # product_line['theoretical_qty'] = product_line['product_uom_qty']
                 if product_line['product_id']:
                     product = product_obj.browse(product_line['product_id'])
                     product_line['product_uom'] = product.uom_id.id
@@ -157,7 +201,6 @@ class StockMove(models.Model):
             move = self.env['mass.stock.move'].browse(vals['line_id'])
             location = move.location_id
             result = self.product_id_change(vals['product_id'], location)
-            print "result......................", result, vals,
             vals.update(result)
         result = super(StockMove, self).create(vals)
         return result
