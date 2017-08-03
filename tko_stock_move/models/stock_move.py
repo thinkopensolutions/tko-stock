@@ -46,8 +46,8 @@ class MassStockMove(models.Model):
     filter = fields.Selection([('a', 'Auto'), ('m', 'Manual Selection of Products')], required=True, default='a',
                               string='Filter', readonly=True, states={'d': [('readonly', False)]},
                               track_visibility='onchange')
-    line_ids = fields.One2many('mass.stock.move.line', 'line_id', 'Products', readonly=True,
-                               states={'d': [('readonly', False)]})
+    line_ids = fields.One2many('mass.stock.move.line', 'line_id', 'Products', readonly=False,
+                               states={'do': [('readonly', True)], })
     state = fields.Selection([('d', u'Draft'), ('i', u'In Progress'), ('do', u'Done')], default='d', copy=False,
                              required=True, string=u'State', track_visibility='onchange')
     location_id = fields.Many2one('stock.location', u'Source  Location', required=True, readonly=True,
