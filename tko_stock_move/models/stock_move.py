@@ -38,16 +38,25 @@ class MassStockMove(models.Model):
     _name = 'mass.stock.move'
     _inherit = 'mail.thread'
 
+    @api.model
+    def _get_default_id(self):
+        lines = []
+        company = self.env.user.company_id.id
+        move_type_obj = self.env['mass.move.type']
+        move_type_lines = self.env['mass.move.type.lines'].search([('company_id','=',company)])
+        lines = [x.line_id.id for x in move_type_lines]
+        return lines and lines[0] or False
+
     name = fields.Char(u'Name', required=True, readonly=True, states={'d': [('readonly', False)]},
                        track_visibility='onchange')
-    move_type_id = fields.Many2one('mass.move.type', u'Move Type', required=True)
+    move_type_id = fields.Many2one('mass.move.type', u'Move Type', required=True, default=_get_default_id)
     date = fields.Datetime(u'Date', readonly=True)
     user_id = fields.Many2one('res.users', 'User', readonly=True, default=lambda self: self.env.user.id)
     filter = fields.Selection([('a', 'Auto'), ('m', 'Manual Selection of Products')], required=True, default='a',
                               string='Filter', readonly=True, states={'d': [('readonly', False)]},
                               track_visibility='onchange')
-    line_ids = fields.One2many('mass.stock.move.line', 'line_id', 'Products', readonly=True,
-                               states={'d': [('readonly', False)]})
+    line_ids = fields.One2many('mass.stock.move.line', 'line_id', 'Products', readonly=False,
+                               states={'do': [('readonly', True)]})
     state = fields.Selection([('d', u'Draft'), ('i', u'In Progress'), ('do', u'Done')], default='d', copy=False,
                              required=True, string=u'State', track_visibility='onchange')
     location_id = fields.Many2one('stock.location', u'Source  Location', required=True, readonly=True,
@@ -63,12 +72,18 @@ class MassStockMove(models.Model):
     @api.onchange('move_type_id')
     def onchange_move_type_id(self):
         company_id = self.env.user.company_id.id
+        res={}
         if self.move_type_id and company_id:
-            line = self.env['mass.move.type.lines'].search(
+            move_type_line_obj = self.env['mass.move.type.lines']
+            move_type_lines = move_type_line_obj.search([('company_id','=',company_id)])
+            line_ids = [x.line_id.id for x in move_type_lines]
+            res['domain'] = {'move_type_id': [('id', 'in', line_ids)]}
+            line = move_type_line_obj.search(
                 [('line_id', '=', self.move_type_id.id), ('company_id', '=', company_id)])
             if line:
                 self.location_id = line.location_id.id
                 self.location_dest_id = line.location_dest_id.id
+        return res
 
     @api.constrains('location_id', 'location_dest_id', 'state')
     def _check_stock_move(self):
