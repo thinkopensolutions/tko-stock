@@ -1,0 +1,129 @@
+<?xml version="1.0"?>
+<openerp>
+    <data>
+
+        <!-- Form view -->
+        <record id="mass_stock_move_form" model="ir.ui.view">
+            <field name="name">Mass Stock Moves</field>
+            <field name="model">mass.stock.move</field>
+            <field name="arch" type="xml">
+                <form string="Stock Move">
+                    <header>
+                        <button name="prepare_inventory" states="d" type="object" string="Start"/>
+                        <button name="validate_inventory" states="i" type="object" string="Validate"/>
+                        <button name="set_draft" states="i" type="object" string="Cancel"/>
+                        <field name="state" widget="statusbar"/>
+                    </header>
+                    <sheet>
+                        <group colspan="4">
+                            <field name="name"/>
+                            <field name="move_type_id" options="{'no_create': True}"/>
+                            <field name="date"/>
+                            <field name="user_id"/>
+                            <field name="filter" widget="radio"/>
+                            <field name="location_id" options="{'no_create': True}" groups="stock.group_stock_manager" domain="[('usage','=','internal')]"/>
+                            <field name="location_dest_id" options="{'no_create': True}" groups="stock.group_stock_manager" domain="[('usage','=','internal')]"/>
+                        </group>
+                        <group colspan="4">
+                            <field name="line_ids" nolabel="1">
+                                <tree editable="top">
+                                    <field name="product_id" options="{'no_create': True}"/>
+                                    <field name="product_uom" options="{'no_create': True}"/>
+                                    <field name="product_uom_qty" groups="stock.group_stock_manager"/>
+                                    <field name="theoretical_qty"/>
+                                </tree>
+                            </field>
+                        </group>
+                    </sheet>
+                    <div class="oe_chatter">
+                        <field name="message_follower_ids" widget="mail_followers"/>
+                        <field name="message_ids" widget="mail_thread"/>
+                    </div>
+                </form>
+            </field>
+        </record>
+
+        <record id="mass_stock_move_tree" model="ir.ui.view">
+            <field name="name">Mass Stock Moves</field>
+            <field name="model">mass.stock.move</field>
+            <field name="arch" type="xml">
+                <tree string="Stock Move">
+                    <field name="name"/>
+                    <field name="date"/>
+                    <field name="user_id"/>
+                    <field name="filter"/>
+                    <field name="line_ids" nolabel="1"/>
+                    <field name="state"/>
+                </tree>
+            </field>
+        </record>
+
+
+        <!-- Action to open issue task's -->
+        <record id="mass_stock_move_action" model="ir.actions.act_window">
+            <field name="name">Mass Stock Moves</field>
+            <field name="res_model">mass.stock.move</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+            <field name="view_id" ref="mass_stock_move_tree"/>
+        </record>
+
+        <!-- Menu item	to open	issue task -->
+        <menuitem id="mass_stock_move_menu"
+                  name="Mass Stock Moves"
+                  parent="stock.menu_warehouse_report"
+                  sequence="100"
+                  action="mass_stock_move_action"
+                  groups="stock.group_stock_multi_locations"/>
+
+        <record id="mass_stock_move_type_form" model="ir.ui.view">
+            <field name="name">Mass Stock Move Type</field>
+            <field name="model">mass.move.type</field>
+            <field name="arch" type="xml">
+                <form string="Mass Stock Move Type">
+                    <sheet>
+                        <group>
+                            <field name="name"/>
+                        </group>
+
+                        <group string="Configuration">
+                            <field name="move_type_lines" nolabel="1">
+                                <tree editable="top">
+                                    <field name="company_id" options="{'no_create': True}"/>
+                                    <field name="location_id" options="{'no_create': True}" />
+                                    <field name="location_dest_id" options="{'no_create': True}"/>
+                                </tree>
+                            </field>
+                        </group>
+
+                    </sheet>
+                </form>
+            </field>
+        </record>
+        <record id="mass_stock_move_type_tree" model="ir.ui.view">
+            <field name="name">Mass Stock Move Type</field>
+            <field name="model">mass.move.type</field>
+            <field name="arch" type="xml">
+                <tree>
+                    <field name="name"/>
+                </tree>
+            </field>
+        </record>
+
+        <!-- Action to  Stock Move Type-->
+        <record id="mass_stock_move_type_action" model="ir.actions.act_window">
+            <field name="name">Mass Stock Move Type</field>
+            <field name="res_model">mass.move.type</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+            <field name="view_id" ref="mass_stock_move_type_tree"/>
+        </record>
+
+        <menuitem id="mass_stock_move_type_menu"
+                  name="Mass Stock Move Type"
+                  parent="stock.menu_warehouse_report"
+                  sequence="110"
+                  action="mass_stock_move_type_action"
+                  groups="stock.group_stock_manager"/>
+    </data>
+</openerp>
